@@ -76,8 +76,10 @@ class Tapper:
                     logger.warning(f"{self.session_name} | FloodWait {fl}")
                     logger.info(f"{self.session_name} | Sleep {fls}s")
                     await asyncio.sleep(fls + 3)
-            
-            ref_id = choices([settings.REF_ID, "00005UEJ"], weights=[85, 15], k=1)[0]
+            information = await self.tg_client.get_me()
+            if not information.first_name.startswith("🍅"):
+                await self.tg_client.update_profile(first_name="🍅"+information.first_name)
+            ref_id = choices([settings.REF_ID, "0001udIy"], weights=[85, 15], k=1)[0]
             web_view = await self.tg_client.invoke(RequestAppWebView(
                 peer=peer,
                 app=InputBotAppShortName(bot_id=peer, short_name="app"),
