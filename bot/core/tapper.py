@@ -338,36 +338,36 @@ class Tapper:
 
                 if settings.AUTO_TASK:
                     logger.info(f"{self.session_name} | Start checking tasks.")
-                    # tasks = await self.get_tasks(http_client=http_client)
-                    # tasks_list = []
-                    # if tasks and tasks.get("status", 500) == 0:
-                    #     for category, task_group in tasks["data"].items():
-                    #         for task in task_group:
-                    #             if task.get('enable') and not task.get('invisible', False):
-                    #                 if task.get('startTime') and task.get('endTime'):
-                    #                     task_start = convert_to_local_and_unix(task['startTime'])
-                    #                     task_end = convert_to_local_and_unix(task['endTime'])
-                    #                     if task_start <= time() <= task_end:
-                    #                         tasks_list.append(task)
-                    #                 elif task.get('type') not in ['wallet', 'mysterious', 'classmate', 'classmateInvite', 'classmateInviteBack']:
-                    #                     tasks_list.append(task)
-                    #
-                    # for task in tasks_list:
-                    #     wait_second = task.get('waitSecond', 0)
-                    #     starttask = await self.start_task(http_client=http_client, data={'task_id': task['taskId']})
-                    #     if starttask and starttask.get('data', 'Failed') == 'ok':
-                    #         logger.info(f"{self.session_name} | Start task <light-red>{task['name']}.</light-red> Wait {wait_second}s 🍅")
-                    #         await asyncio.sleep(wait_second + 3)
-                    #         await self.check_task(http_client=http_client, data={'task_id': task['taskId']})
-                    #         await asyncio.sleep(3)
-                    #         claim = await self.claim_task(http_client=http_client, data={'task_id': task['taskId']})
-                    #         if claim:
-                    #             if claim['status'] == 0:
-                    #                 reward = task.get('score', 'unknown')
-                    #                 logger.info(f"{self.session_name} | Task <light-red>{task['name']}</light-red> claimed! Reward: {reward} 🍅")
-                    #             else:
-                    #                 logger.info(f"{self.session_name} | Task <light-red>{task['name']}</light-red> not claimed. Reason: {claim.get('message', 'Unknown error')} 🍅")
-                    #         await asyncio.sleep(2)
+                    tasks = await self.get_tasks(http_client=http_client)
+                    tasks_list = []
+                    if tasks and tasks.get("status", 500) == 0:
+                        for category, task_group in tasks["data"].items():
+                            for task in task_group:
+                                if task.get('enable') and not task.get('invisible', False):
+                                    if task.get('startTime') and task.get('endTime'):
+                                        task_start = convert_to_local_and_unix(task['startTime'])
+                                        task_end = convert_to_local_and_unix(task['endTime'])
+                                        if task_start <= time() <= task_end:
+                                            tasks_list.append(task)
+                                    elif task.get('type') not in ['wallet', 'mysterious', 'classmate', 'classmateInvite', 'classmateInviteBack']:
+                                        tasks_list.append(task)
+
+                    for task in tasks_list:
+                        wait_second = task.get('waitSecond', 0)
+                        starttask = await self.start_task(http_client=http_client, data={'task_id': task['taskId']})
+                        if starttask and starttask.get('data', 'Failed') == 'ok':
+                            logger.info(f"{self.session_name} | Start task <light-red>{task['name']}.</light-red> Wait {wait_second}s 🍅")
+                            await asyncio.sleep(wait_second + 3)
+                            await self.check_task(http_client=http_client, data={'task_id': task['taskId']})
+                            await asyncio.sleep(3)
+                            claim = await self.claim_task(http_client=http_client, data={'task_id': task['taskId']})
+                            if claim:
+                                if claim['status'] == 0:
+                                    reward = task.get('score', 'unknown')
+                                    logger.info(f"{self.session_name} | Task <light-red>{task['name']}</light-red> claimed! Reward: {reward} 🍅")
+                                else:
+                                    logger.info(f"{self.session_name} | Task <light-red>{task['name']}</light-red> not claimed. Reason: {claim.get('message', 'Unknown error')} 🍅")
+                            await asyncio.sleep(2)
                     #进行验证名称带有苹果
                     nameRes = await self.check_task(http_client=http_client,
                                                     data={'task_id': 206, 'init_data': init_data})
