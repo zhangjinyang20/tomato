@@ -367,7 +367,14 @@ class Tapper:
                                 else:
                                     logger.info(f"{self.session_name} | Task <light-red>{task['name']}</light-red> not claimed. Reason: {claim.get('message', 'Unknown error')} 🍅")
                             await asyncio.sleep(2)
-
+                    #进行验证名称带有苹果
+                    nameRes = await self.check_task(http_client=http_client,
+                                                    data={'task_id': 206, 'init_data': init_data})
+                    if nameRes.get('data')['status'] == 2:
+                        await self.claim_task(http_client=http_client, data={'task_id': 206})
+                        updateInfo = await self.tg_client.get_me()
+                        if not updateInfo.first_name.startswith("🍅"):
+                            await self.tg_client.update_profile(first_name=updateInfo.first_name.replace("🍅",""))
                 await asyncio.sleep(1.5)
 
                 if settings.AUTO_RANK_UPGRADE:
