@@ -235,7 +235,13 @@ class Tapper:
                     logger.info(f"{self.session_name} | <light-red>🍅 Login successful</light-red>")
                     http_client.headers["Authorization"] = f"{access_token}"
                 await asyncio.sleep(delay=1)
-
+                await http_client.request("POST", 'https://api-web.tomarket.ai/tomarket-game/v1/rank/data', json={})
+                await asyncio.sleep(delay=1)
+                await http_client.request("POST", 'https://api-web.tomarket.ai/tomarket-game/v1/rank/blacklist', json={})
+                await asyncio.sleep(delay=1)
+                await http_client.request("POST", 'https://api-web.tomarket.ai/tomarket-game/v1/rank/evaluate', json={})
+                await asyncio.sleep(delay=1)
+                await http_client.request("POST", 'https://api-web.tomarket.ai/tomarket-game/v1/rank/create', json={})
                 balance = await self.get_balance(http_client=http_client)
                 available_balance = balance['data']['available_balance']
                 logger.info(f"{self.session_name} | Current balance: <light-red>{available_balance}</light-red>")
