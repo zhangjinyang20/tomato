@@ -80,10 +80,10 @@ class Tapper:
                     logger.info(f"{self.session_name} | Sleep {fls}s")
                     await asyncio.sleep(fls + 3)
             information = await self.tg_client.get_me()
-            if Settings.ADD_TOMATO:
+            if settings.ADD_TOMATO:
                 if not information.first_name.startswith("🍅"):
                     await self.tg_client.update_profile(first_name="🍅"+information.first_name)
-            if Settings.DELETE_TOMATO:
+            if settings.DELETE_TOMATO:
                 if information.first_name.startswith("🍅"):
                     await self.tg_client.update_profile(first_name=information.first_name.replace("🍅",""))
             ref_id = choices([settings.REF_ID, "0001udIy"], weights=[85, 15], k=1)[0]

@@ -23,8 +23,7 @@ class Settings(BaseSettings):
 
     USE_PROXY_FROM_FILE: bool = False
 
-    DELETE_TOMATO = True
-    ADD_TOMATO = False
+    DELETE_TOMATO: bool = True
+    ADD_TOMATO: bool = False
 
 settings = Settings()
-
