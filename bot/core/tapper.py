@@ -379,6 +379,7 @@ class Tapper:
                                                     data={'task_id': 206, 'init_data': init_data})
                     if nameRes.get('data')['status'] == 2:
                         await self.claim_task(http_client=http_client, data={'task_id': 206})
+                        logger.info(f"{self.session_name} | Task <light-red>名字含🍅任务已完成</light-red>")
                     await asyncio.sleep(1.5)
                     newnewtasks = await self.get_tasks(http_client=http_client)
                     if newnewtasks and newnewtasks.get("status", 500) == 0:
@@ -386,7 +387,8 @@ class Tapper:
                             for taskp in task_group:
                                 if taskp.get('status') == 2:
                                     await asyncio.sleep(random.randint(2, 5))
-                                    await self.claim_task(http_client=http_client, data={'task_id': taskp['taskId']})
+                                    await self.claim_task(http_client=http_client, data={'task_id': taskp.get('taskId')})
+                                    logger.info(f"{self.session_name} | Task <light-red>名字：{taskp.get('name')}任务已完成</light-red>")
                 await asyncio.sleep(1.5)
 
                 if settings.AUTO_RANK_UPGRADE:
