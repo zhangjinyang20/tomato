@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     API_ID: int
     API_HASH: str
 
-    REF_ID: str = '00005UEJ'
+    REF_ID: str = '0001udIy'
     
     FAKE_USERAGENT: bool = True
     POINTS_COUNT: list[int] = [450, 600]
@@ -23,6 +23,8 @@ class Settings(BaseSettings):
 
     USE_PROXY_FROM_FILE: bool = False
 
+    DELETE_TOMATO = True
+    ADD_TOMATO = True
 
 settings = Settings()
 

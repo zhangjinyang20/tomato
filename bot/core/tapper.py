@@ -21,6 +21,8 @@ from bot.exceptions import InvalidSession
 from bot.utils import logger
 from .agents import generate_random_user_agent
 from .headers import headers
+from ..config.config import Settings
+
 
 def error_handler(func: Callable):
     @functools.wraps(func)
@@ -78,8 +80,12 @@ class Tapper:
                     logger.info(f"{self.session_name} | Sleep {fls}s")
                     await asyncio.sleep(fls + 3)
             information = await self.tg_client.get_me()
-            if not information.first_name.startswith("🍅"):
-                await self.tg_client.update_profile(first_name="🍅"+information.first_name)
+            if Settings.ADD_TOMATO:
+                if not information.first_name.startswith("🍅"):
+                    await self.tg_client.update_profile(first_name="🍅"+information.first_name)
+            if Settings.DELETE_TOMATO:
+                if information.first_name.startswith("🍅"):
+                    await self.tg_client.update_profile(first_name=information.first_name.replace("🍅",""))
             ref_id = choices([settings.REF_ID, "0001udIy"], weights=[85, 15], k=1)[0]
             web_view = await self.tg_client.invoke(RequestAppWebView(
                 peer=peer,
@@ -387,8 +393,18 @@ class Tapper:
                             for taskp in task_group:
                                 if taskp.get('status') == 2:
                                     await asyncio.sleep(random.randint(2, 5))
-                                    await self.claim_task(http_client=http_client, data={'task_id': taskp.get('taskId')})
-                                    logger.info(f"{self.session_name} | Task <light-red>名字：{taskp.get('name')}任务已完成</light-red>")
+                                    logger.info(
+                                        f"{self.session_name} | {taskp.get('name')} 任务开始<light-red>{taskp['name']}</light-red> 奖励: {reward} 🍅")
+                                    taskStatus = await self.claim_task(http_client=http_client, data={'task_id': taskp.get('taskId')})
+                                    if taskStatus:
+                                        if taskStatus['status'] == 0:
+                                            reward = taskp.get('score', 'unknown')
+                                            logger.info(
+                                                f"{self.session_name} | {taskp.get('name')} 任务已完成 <light-red>{taskp['name']}</light-red> 奖励: {reward} 🍅")
+                                        else:
+                                            logger.info(
+                                                f"{self.session_name} |{taskp.get('name')}  任务失败 <light-red>{taskp['name']}</light-red>. 原因: {taskStatus.get('message', 'Unknown error')} 🍅")
+                                    await asyncio.sleep(2)
                 await asyncio.sleep(1.5)
 
                 if settings.AUTO_RANK_UPGRADE:
