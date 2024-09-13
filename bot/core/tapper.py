@@ -360,9 +360,11 @@ class Tapper:
                                         task_start = convert_to_local_and_unix(task['startTime'])
                                         task_end = convert_to_local_and_unix(task['endTime'])
                                         if task_start <= time() <= task_end:
-                                            tasks_list.append(task)
+                                            if not task.get('taskId')==1:
+                                                tasks_list.append(task)
                                     elif task.get('type') not in ['wallet', 'mysterious', 'classmate', 'classmateInvite', 'classmateInviteBack']:
-                                        tasks_list.append(task)
+                                        if not task.get('taskId') == 1:
+                                            tasks_list.append(task)
 
                     for task in tasks_list:
                         wait_second = task.get('waitSecond', 0)
@@ -421,7 +423,7 @@ class Tapper:
 
                 sleep_time = end_farming_dt - time()
                 logger.info(f'{self.session_name} | Sleep <light-red>{round(sleep_time / 60, 2)}m.</light-red>')
-                await asyncio.sleep(sleep_time)
+                await asyncio.sleep(sleep_time+(random.randint(2, 10)))
                 await http_client.close()
                 if proxy_conn:
                     if not proxy_conn.closed:
