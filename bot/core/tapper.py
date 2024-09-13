@@ -423,7 +423,7 @@ class Tapper:
 
                 sleep_time = end_farming_dt - time()
                 logger.info(f'{self.session_name} | Sleep <light-red>{round(sleep_time / 60, 2)}m.</light-red>')
-                await asyncio.sleep(sleep_time+(random.randint(2, 10)))
+                await asyncio.sleep(sleep_time+(random.randint(100, 300)))
                 await http_client.close()
                 if proxy_conn:
                     if not proxy_conn.closed:
