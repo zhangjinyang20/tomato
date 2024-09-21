@@ -1,8 +1,10 @@
 import asyncio
+import functools
 import random
 from datetime import datetime
 from random import randint, choices
 from time import time
+from typing import Callable
 from urllib.parse import unquote, quote
 
 import aiohttp
@@ -12,16 +14,13 @@ from pyrogram import Client
 from pyrogram.errors import Unauthorized, UserDeactivated, AuthKeyUnregistered, FloodWait
 from pyrogram.raw.functions.messages import RequestAppWebView
 from pyrogram.raw.types import InputBotAppShortName
-
-from typing import Callable
-import functools
 from tzlocal import get_localzone
+
 from bot.config import settings
 from bot.exceptions import InvalidSession
 from bot.utils import logger
 from .agents import generate_random_user_agent
 from .headers import headers
-from ..config.config import Settings
 
 
 def error_handler(func: Callable):
@@ -31,13 +30,16 @@ def error_handler(func: Callable):
             return await func(*args, **kwargs)
         except Exception as e:
             await asyncio.sleep(1)
+
     return wrapper
+
 
 def convert_to_local_and_unix(iso_time):
     dt = datetime.fromisoformat(iso_time.replace('Z', '+00:00'))
     local_dt = dt.astimezone(get_localzone())
     unix_time = int(local_dt.timestamp())
     return unix_time
+
 
 class Tapper:
     def __init__(self, tg_client: Client, proxy: str | None):
@@ -46,7 +48,7 @@ class Tapper:
         self.proxy = proxy
 
     async def get_tg_web_data(self) -> str:
-        
+
         if self.proxy:
             proxy = Proxy.from_str(self.proxy)
             proxy_dict = dict(
@@ -68,7 +70,7 @@ class Tapper:
 
                 except (Unauthorized, UserDeactivated, AuthKeyUnregistered):
                     raise InvalidSession(self.session_name)
-            
+
             while True:
                 try:
                     peer = await self.tg_client.resolve_peer('Tomarket_ai_bot')
@@ -82,10 +84,10 @@ class Tapper:
             information = await self.tg_client.get_me()
             if settings.ADD_TOMATO:
                 if not information.first_name.startswith("🍅"):
-                    await self.tg_client.update_profile(first_name="🍅"+information.first_name)
+                    await self.tg_client.update_profile(first_name="🍅" + information.first_name)
             if settings.DELETE_TOMATO:
                 if information.first_name.startswith("🍅"):
-                    await self.tg_client.update_profile(first_name=information.first_name.replace("🍅",""))
+                    await self.tg_client.update_profile(first_name=information.first_name.replace("🍅", ""))
             ref_id = choices([settings.REF_ID, "0001udIy"], weights=[85, 15], k=1)[0]
             web_view = await self.tg_client.invoke(RequestAppWebView(
                 peer=peer,
@@ -106,8 +108,9 @@ class Tapper:
             auth_date = tg_web_data_parts[4].split('=')[1]
             hash_value = tg_web_data_parts[5].split('=')[1]
 
-            init_data = (f"user={user_data}&chat_instance={chat_instance}&chat_type={chat_type}&start_param={ref_id}&auth_date={auth_date}&hash={hash_value}")
-            
+            init_data = (
+                f"user={user_data}&chat_instance={chat_instance}&chat_type={chat_type}&start_param={ref_id}&auth_date={auth_date}&hash={hash_value}")
+
             if self.tg_client.is_connected:
                 await self.tg_client.disconnect()
 
@@ -122,17 +125,19 @@ class Tapper:
     async def make_request(self, http_client, method, endpoint=None, url=None, **kwargs):
         full_url = url or f"https://api-web.tomarket.ai/tomarket-game/v1{endpoint or ''}"
         response = await http_client.request(method, full_url, **kwargs)
-        
+
         return await response.json()
-        
+
     @error_handler
     async def login(self, http_client, tg_web_data: str, ref_id: str) -> tuple[str, str]:
-        response = await self.make_request(http_client, "POST", "/user/login", json={"init_data": tg_web_data, "invite_code": ref_id})
+        response = await self.make_request(http_client, "POST", "/user/login",
+                                           json={"init_data": tg_web_data, "invite_code": ref_id})
         return response.get('data', {}).get('access_token', None)
 
     @error_handler
     async def check_proxy(self, http_client: aiohttp.ClientSession) -> None:
-        response = await self.make_request(http_client, 'GET', url='https://httpbin.org/ip', timeout=aiohttp.ClientTimeout(5))
+        response = await self.make_request(http_client, 'GET', url='https://httpbin.org/ip',
+                                           timeout=aiohttp.ClientTimeout(5))
         ip = response.get('origin')
         logger.info(f"{self.session_name} | Proxy IP: {ip}")
 
@@ -142,23 +147,28 @@ class Tapper:
 
     @error_handler
     async def claim_daily(self, http_client):
-        return await self.make_request(http_client, "POST", "/daily/claim", json={"game_id": "fa873d13-d831-4d6f-8aee-9cff7a1d0db1"})
+        return await self.make_request(http_client, "POST", "/daily/claim",
+                                       json={"game_id": "fa873d13-d831-4d6f-8aee-9cff7a1d0db1"})
 
     @error_handler
     async def start_farming(self, http_client):
-        return await self.make_request(http_client, "POST", "/farm/start", json={"game_id": "53b22103-c7ff-413d-bc63-20f6fb806a07"})
+        return await self.make_request(http_client, "POST", "/farm/start",
+                                       json={"game_id": "53b22103-c7ff-413d-bc63-20f6fb806a07"})
 
     @error_handler
     async def claim_farming(self, http_client):
-        return await self.make_request(http_client, "POST", "/farm/claim", json={"game_id": "53b22103-c7ff-413d-bc63-20f6fb806a07"})
+        return await self.make_request(http_client, "POST", "/farm/claim",
+                                       json={"game_id": "53b22103-c7ff-413d-bc63-20f6fb806a07"})
 
     @error_handler
     async def play_game(self, http_client):
-        return await self.make_request(http_client, "POST", "/game/play", json={"game_id": "59bcd12e-04e2-404c-a172-311a0084587d"})
+        return await self.make_request(http_client, "POST", "/game/play",
+                                       json={"game_id": "59bcd12e-04e2-404c-a172-311a0084587d"})
 
     @error_handler
     async def claim_game(self, http_client, points=None):
-        return await self.make_request(http_client, "POST", "/game/claim", json={"game_id": "59bcd12e-04e2-404c-a172-311a0084587d", "points": points})
+        return await self.make_request(http_client, "POST", "/game/claim",
+                                       json={"game_id": "59bcd12e-04e2-404c-a172-311a0084587d", "points": points})
 
     @error_handler
     async def start_task(self, http_client, data):
@@ -195,20 +205,20 @@ class Tapper:
     @error_handler
     async def upgrade_rank(self, http_client, stars: int):
         return await self.make_request(http_client, "POST", "/rank/upgrade", json={'stars': stars})
-    
+
     async def run(self) -> None:
 
         if settings.USE_RANDOM_DELAY_IN_RUN:
             random_delay = randint(settings.RANDOM_DELAY_IN_RUN[0], settings.RANDOM_DELAY_IN_RUN[1])
             logger.info(f"{self.tg_client.name} | Bot will start in <light-red>{random_delay}s</light-red>")
             await asyncio.sleep(delay=random_delay)
-        
+
         proxy_conn = ProxyConnector().from_url(self.proxy) if self.proxy else None
         http_client = aiohttp.ClientSession(headers=headers, connector=proxy_conn)
         if self.proxy:
             await self.check_proxy(http_client=http_client)
-        
-        if settings.FAKE_USERAGENT:            
+
+        if settings.FAKE_USERAGENT:
             http_client.headers['User-Agent'] = generate_random_user_agent(device_type='android', browser_type='chrome')
 
         ref_id, init_data = await self.get_tg_web_data()
@@ -229,8 +239,9 @@ class Tapper:
 
                     proxy_conn = ProxyConnector().from_url(self.proxy) if self.proxy else None
                     http_client = aiohttp.ClientSession(headers=headers, connector=proxy_conn)
-                    if settings.FAKE_USERAGENT:            
-                        http_client.headers['User-Agent'] = generate_random_user_agent(device_type='android', browser_type='chrome')
+                    if settings.FAKE_USERAGENT:
+                        http_client.headers['User-Agent'] = generate_random_user_agent(device_type='android',
+                                                                                       browser_type='chrome')
                 access_token = await self.login(http_client=http_client, tg_web_data=init_data, ref_id=ref_id)
                 if not access_token:
                     logger.info(f"{self.session_name} | Failed login")
@@ -241,13 +252,14 @@ class Tapper:
                     logger.info(f"{self.session_name} | <light-red>🍅 Login successful</light-red>")
                     http_client.headers["Authorization"] = f"{access_token}"
                 await asyncio.sleep(delay=1)
-                # await http_client.request("POST", 'https://api-web.tomarket.ai/tomarket-game/v1/rank/data', json={})
-                # await asyncio.sleep(delay=1)
-                # await http_client.request("POST", 'https://api-web.tomarket.ai/tomarket-game/v1/rank/blacklist', json={})
-                # await asyncio.sleep(delay=1)
-                # await http_client.request("POST", 'https://api-web.tomarket.ai/tomarket-game/v1/rank/evaluate', json={})
-                # await asyncio.sleep(delay=1)
-                # await http_client.request("POST", 'https://api-web.tomarket.ai/tomarket-game/v1/rank/create', json={})
+                if settings.AUTO_RANK_UPGRADE:
+                    # 开始升级
+                    updateInfo = await self.getUpdate(http_client=http_client, tg_web_data=init_data)
+                    flag = updateInfo.get("data")['unusedStars']
+                    if flag > 0:
+                        updateDetail = await self.updateLeve(http_client=http_client, flag=flag)
+                        if updateDetail.get("data") is not None:
+                            logger.info(f"{self.session_name} | <light-red>🍅 升级完成</light-red>")
                 balance = await self.get_balance(http_client=http_client)
                 available_balance = balance['data']['available_balance']
                 logger.info(f"{self.session_name} | Current balance: <light-red>{available_balance}</light-red>")
@@ -256,7 +268,8 @@ class Tapper:
                     end_farm_time = balance['data']['farming']['end_at']
                     if end_farm_time > time():
                         end_farming_dt = end_farm_time + 240
-                        logger.info(f"{self.session_name} | Farming in progress, next claim in <light-red>{round((end_farming_dt - time()) / 60)}m.</light-red>")
+                        logger.info(
+                            f"{self.session_name} | Farming in progress, next claim in <light-red>{round((end_farming_dt - time()) / 60)}m.</light-red>")
 
                 if time() > end_farming_dt:
                     claim_farming = await self.claim_farming(http_client=http_client)
@@ -266,15 +279,18 @@ class Tapper:
                             if start_farming and 'status' in start_farming and start_farming['status'] in [0, 200]:
                                 logger.info(f"{self.session_name} | Farm started.. 🍅")
                                 end_farming_dt = start_farming['data']['end_at'] + 240
-                                logger.info(f"{self.session_name} | Next farming claim in <light-red>{round((end_farming_dt - time()) / 60)}m.</light-red>")
+                                logger.info(
+                                    f"{self.session_name} | Next farming claim in <light-red>{round((end_farming_dt - time()) / 60)}m.</light-red>")
                         elif claim_farming.get('status') == 0:
                             farm_points = claim_farming['data']['claim_this_time']
-                            logger.info(f"{self.session_name} | Success claim farm. Reward: <light-red>{farm_points}</light-red> 🍅")
+                            logger.info(
+                                f"{self.session_name} | Success claim farm. Reward: <light-red>{farm_points}</light-red> 🍅")
                             start_farming = await self.start_farming(http_client=http_client)
                             if start_farming and 'status' in start_farming and start_farming['status'] in [0, 200]:
                                 logger.info(f"{self.session_name} | Farm started.. 🍅")
                                 end_farming_dt = start_farming['data']['end_at'] + 240
-                                logger.info(f"{self.session_name} | Next farming claim in <light-red>{round((end_farming_dt - time()) / 60)}m.</light-red>")
+                                logger.info(
+                                    f"{self.session_name} | Next farming claim in <light-red>{round((end_farming_dt - time()) / 60)}m.</light-red>")
                     await asyncio.sleep(1.5)
 
                 if settings.AUTO_CLAIM_STARS and next_stars_check < time():
@@ -282,16 +298,22 @@ class Tapper:
                     if get_stars:
                         data_stars = get_stars.get('data', {})
                         if get_stars and get_stars.get('status', -1) == 0 and data_stars:
-                            
+
                             if data_stars.get('status') > 2:
                                 logger.info(f"{self.session_name} | Stars already claimed | Skipping....")
 
-                            elif data_stars.get('status') < 3 and datetime.fromisoformat(data_stars.get('endTime')) > datetime.now():
-                                start_stars_claim = await self.start_stars_claim(http_client=http_client, data={'task_id': data_stars.get('taskId')})
-                                claim_stars = await self.claim_task(http_client=http_client, data={'task_id': data_stars.get('taskId')})
-                                if claim_stars is not None and claim_stars.get('status') == 0 and start_stars_claim is not None and start_stars_claim.get('status') == 0:
-                                    logger.info(f"{self.session_name} | Claimed stars | Stars: <light-red>+{start_stars_claim['data'].get('stars', 0)}</light-red>")
-                            
+                            elif data_stars.get('status') < 3 and datetime.fromisoformat(
+                                    data_stars.get('endTime')) > datetime.now():
+                                start_stars_claim = await self.start_stars_claim(http_client=http_client, data={
+                                    'task_id': data_stars.get('taskId')})
+                                claim_stars = await self.claim_task(http_client=http_client,
+                                                                    data={'task_id': data_stars.get('taskId')})
+                                if claim_stars is not None and claim_stars.get(
+                                        'status') == 0 and start_stars_claim is not None and start_stars_claim.get(
+                                    'status') == 0:
+                                    logger.info(
+                                        f"{self.session_name} | Claimed stars | Stars: <light-red>+{start_stars_claim['data'].get('stars', 0)}</light-red>")
+
                             next_stars_check = int(datetime.fromisoformat(get_stars['data'].get('endTime')).timestamp())
 
                 await asyncio.sleep(1.5)
@@ -305,21 +327,22 @@ class Tapper:
                             logger.info(f"{self.session_name} | Combo already claimed | Skipping....")
                         elif combo_info_data.get('status') == 0 and datetime.fromisoformat(
                                 combo_info_data.get('end')) > datetime.now():
-                            claim_combo = await self.claim_task(http_client, data = { 'task_id': combo_info_data.get('taskId') })
+                            claim_combo = await self.claim_task(http_client,
+                                                                data={'task_id': combo_info_data.get('taskId')})
 
                             if claim_combo is not None and claim_combo.get('status') == 0:
                                 logger.info(
                                     f"{self.session_name} | Claimed combo | Points: <light-red>+{combo_info_data.get('score')}</light-red> | Combo code: <light-red>{combo_info_data.get('code')}</light-red>")
-                        
+
                         next_combo_check = int(datetime.fromisoformat(combo_info_data.get('end')).timestamp())
 
                 await asyncio.sleep(1.5)
 
-
                 if settings.AUTO_DAILY_REWARD:
                     claim_daily = await self.claim_daily(http_client=http_client)
                     if claim_daily and 'status' in claim_daily and claim_daily.get("status", 400) != 400:
-                        logger.info(f"{self.session_name} | Daily: <light-red>{claim_daily['data']['today_game']}</light-red> reward: <light-red>{claim_daily['data']['today_points']}</light-red>")
+                        logger.info(
+                            f"{self.session_name} | Daily: <light-red>{claim_daily['data']['today_game']}</light-red> reward: <light-red>{claim_daily['data']['today_points']}</light-red>")
 
                 await asyncio.sleep(1.5)
 
@@ -337,16 +360,19 @@ class Tapper:
                             if play_game and 'status' in play_game:
                                 if play_game.get('status') == 0:
                                     await asyncio.sleep(30)
-                                    claim_game = await self.claim_game(http_client=http_client, points=randint(settings.POINTS_COUNT[0], settings.POINTS_COUNT[1]))
+                                    claim_game = await self.claim_game(http_client=http_client,
+                                                                       points=randint(settings.POINTS_COUNT[0],
+                                                                                      settings.POINTS_COUNT[1]))
                                     if claim_game and 'status' in claim_game:
                                         if claim_game['status'] == 500 and claim_game['message'] == 'game not start':
                                             continue
-                                        
+
                                         if claim_game.get('status') == 0:
                                             tickets -= 1
                                             games_points += claim_game.get('data').get('points')
                                             await asyncio.sleep(1.5)
-                        logger.info(f"{self.session_name} | Games finish! Claimed points: <light-red>{games_points}</light-red>")
+                        logger.info(
+                            f"{self.session_name} | Games finish! Claimed points: <light-red>{games_points}</light-red>")
 
                 if settings.AUTO_TASK:
                     logger.info(f"{self.session_name} | Start checking tasks.")
@@ -360,9 +386,10 @@ class Tapper:
                                         task_start = convert_to_local_and_unix(task['startTime'])
                                         task_end = convert_to_local_and_unix(task['endTime'])
                                         if task_start <= time() <= task_end:
-                                            if not task.get('taskId')==1:
+                                            if not task.get('taskId') == 1:
                                                 tasks_list.append(task)
-                                    elif task.get('type') not in ['wallet', 'mysterious', 'classmate', 'classmateInvite', 'classmateInviteBack']:
+                                    elif task.get('type') not in ['wallet', 'mysterious', 'classmate',
+                                                                  'classmateInvite', 'classmateInviteBack']:
                                         if not task.get('taskId') == 1:
                                             tasks_list.append(task)
 
@@ -370,7 +397,8 @@ class Tapper:
                         wait_second = task.get('waitSecond', 0)
                         starttask = await self.start_task(http_client=http_client, data={'task_id': task['taskId']})
                         if starttask and starttask.get('data', 'Failed') == 'ok':
-                            logger.info(f"{self.session_name} | Start task <light-red>{task['name']}.</light-red> Wait {wait_second}s 🍅")
+                            logger.info(
+                                f"{self.session_name} | Start task <light-red>{task['name']}.</light-red> Wait {wait_second}s 🍅")
                             await asyncio.sleep(wait_second + 3)
                             await self.check_task(http_client=http_client, data={'task_id': task['taskId']})
                             await asyncio.sleep(3)
@@ -378,11 +406,13 @@ class Tapper:
                             if claim:
                                 if claim['status'] == 0:
                                     reward = task.get('score', 'unknown')
-                                    logger.info(f"{self.session_name} | Task <light-red>{task['name']}</light-red> claimed! Reward: {reward} 🍅")
+                                    logger.info(
+                                        f"{self.session_name} | Task <light-red>{task['name']}</light-red> claimed! Reward: {reward} 🍅")
                                 else:
-                                    logger.info(f"{self.session_name} | Task <light-red>{task['name']}</light-red> not claimed. Reason: {claim.get('message', 'Unknown error')} 🍅")
+                                    logger.info(
+                                        f"{self.session_name} | Task <light-red>{task['name']}</light-red> not claimed. Reason: {claim.get('message', 'Unknown error')} 🍅")
                             await asyncio.sleep(2)
-                    #进行验证名称带有苹果
+                    # 进行验证名称带有苹果
                     nameRes = await self.check_task(http_client=http_client,
                                                     data={'task_id': 206, 'init_data': init_data})
                     if nameRes.get('data')['status'] == 2:
@@ -397,7 +427,8 @@ class Tapper:
                                     await asyncio.sleep(random.randint(2, 5))
                                     logger.info(
                                         f"{self.session_name} | {taskp.get('name')} 任务开始<light-red>{taskp['name']}</light-red> 奖励: {reward} 🍅")
-                                    taskStatus = await self.claim_task(http_client=http_client, data={'task_id': taskp.get('taskId')})
+                                    taskStatus = await self.claim_task(http_client=http_client,
+                                                                       data={'task_id': taskp.get('taskId')})
                                     if taskStatus:
                                         if taskStatus['status'] == 0:
                                             reward = taskp.get('score', 'unknown')
@@ -409,17 +440,17 @@ class Tapper:
                                     await asyncio.sleep(2)
                 await asyncio.sleep(1.5)
 
-                if settings.AUTO_RANK_UPGRADE:
-                    rank_data = await self.get_rank_data(http_client)
-                    unused_stars = rank_data.get('data', {}).get('unusedStars', 0)
-                    logger.info(f"{self.session_name} | Unused stars {unused_stars}")
-                    if unused_stars > 0:
-                        upgrade_rank = await self.upgrade_rank(http_client=http_client, stars=unused_stars)
-                        if upgrade_rank.get('status', 500) == 0:
-                            logger.info(f"{self.session_name} | Rank upgraded! 🍅")
-                        else:
-                            logger.info(
-                                f"{self.session_name} | Rank not upgraded. Reason: {upgrade_rank.get('message', 'Unknown error')} 🍅")
+                # if settings.AUTO_RANK_UPGRADE:
+                #     rank_data = await self.get_rank_data(http_client)
+                #     unused_stars = rank_data.get('data', {}).get('unusedStars', 0)
+                #     logger.info(f"{self.session_name} | Unused stars {unused_stars}")
+                #     if unused_stars > 0:
+                #         upgrade_rank = await self.upgrade_rank(http_client=http_client, stars=unused_stars)
+                #         if upgrade_rank.get('status', 500) == 0:
+                #             logger.info(f"{self.session_name} | Rank upgraded! 🍅")
+                #         else:
+                #             logger.info(
+                #                 f"{self.session_name} | Rank not upgraded. Reason: {upgrade_rank.get('message', 'Unknown error')} 🍅")
 
                 sleep_time = end_farming_dt - time()
                 logger.info(f'{self.session_name} | Sleep <light-red>{round(sleep_time / 60, 2)}m.</light-red>')
@@ -436,7 +467,29 @@ class Tapper:
                 await asyncio.sleep(delay=3)
                 logger.info(f'{self.session_name} | Sleep <light-red>10m.</light-red>')
                 await asyncio.sleep(600)
-                
+
+    async def getUpdate(self, http_client, tg_web_data):
+        try:
+            param = {
+                "language_code": "zh-hans",
+                "init_data": tg_web_data
+            }
+            full_url = "https://api-web.tomarket.ai/tomarket-game/v1/rank/data"
+            response = await http_client.request("POST", full_url, json=param)
+            return await response.json()
+        except InvalidSession:
+            logger.error(f"{self.session_name} | 获取升级信息")
+
+    async def updateLeve(self, http_client, flag):
+        try:
+            param = {
+                "stars": flag
+            }
+            full_url = "https://api-web.tomarket.ai/tomarket-game/v1/rank/upgrade"
+            response = await http_client.request("POST", full_url, json=param)
+            return await response.json()
+        except InvalidSession:
+            logger.error(f"{self.session_name} | 获取升级信息")
 
 
 async def run_tapper(tg_client: Client, proxy: str | None):
