@@ -207,7 +207,7 @@ class Tapper:
         return await self.make_request(http_client, "POST", "/rank/upgrade", json={'stars': stars})
 
     async def run(self) -> None:
-
+        access_token_created_time = 0
         if settings.USE_RANDOM_DELAY_IN_RUN:
             random_delay = randint(settings.RANDOM_DELAY_IN_RUN[0], settings.RANDOM_DELAY_IN_RUN[1])
             logger.info(f"{self.tg_client.name} | Bot will start in <light-red>{random_delay}s</light-red>")
@@ -232,25 +232,29 @@ class Tapper:
         next_combo_check = 0
         while True:
             try:
-                if http_client.closed:
-                    if proxy_conn:
-                        if not proxy_conn.closed:
-                            proxy_conn.close()
+                if time() - access_token_created_time >= 3600:
+                    if http_client.closed:
+                        if proxy_conn:
+                            if not proxy_conn.closed:
+                                proxy_conn.close()
 
-                    proxy_conn = ProxyConnector().from_url(self.proxy) if self.proxy else None
-                    http_client = aiohttp.ClientSession(headers=headers, connector=proxy_conn)
-                    if settings.FAKE_USERAGENT:
-                        http_client.headers['User-Agent'] = generate_random_user_agent(device_type='android',
-                                                                                       browser_type='chrome')
-                access_token = await self.login(http_client=http_client, tg_web_data=init_data, ref_id=ref_id)
-                if not access_token:
-                    logger.info(f"{self.session_name} | Failed login")
-                    logger.info(f"{self.session_name} | Sleep <light-red>300s</light-red>")
-                    await asyncio.sleep(delay=300)
-                    continue
-                else:
-                    logger.info(f"{self.session_name} | <light-red>🍅 Login successful</light-red>")
-                    http_client.headers["Authorization"] = f"{access_token}"
+                        proxy_conn = ProxyConnector().from_url(self.proxy) if self.proxy else None
+                        http_client = aiohttp.ClientSession(headers=headers, connector=proxy_conn)
+                        if settings.FAKE_USERAGENT:
+                            http_client.headers['User-Agent'] = generate_random_user_agent(device_type='android',
+                                                                                           browser_type='chrome')
+                    access_token = await self.login(http_client=http_client, tg_web_data=init_data, ref_id=ref_id)
+                    if not access_token:
+                        logger.info(f"{self.session_name} | Failed login")
+                        logger.info(f"{self.session_name} | Sleep <light-red>300s</light-red>")
+                        await asyncio.sleep(delay=300)
+                        continue
+                    else:
+                        logger.info(f"{self.session_name} | <light-red>🍅 Login successful</light-red>")
+                        http_client.headers["Authorization"] = f"{access_token}"
+                        access_token_created_time = time()
+                        # 挖番茄
+                        await self.digTomatoes(http_client=http_client, init_data=init_data)
                 await asyncio.sleep(delay=1)
                 if settings.AUTO_RANK_UPGRADE:
                     # 开始升级
@@ -439,7 +443,6 @@ class Tapper:
                                                 f"{self.session_name} |{taskp.get('name')}  任务失败 <light-red>{taskp['name']}</light-red>. 原因: {taskStatus.get('message', 'Unknown error')} 🍅")
                                     await asyncio.sleep(2)
                 await asyncio.sleep(1.5)
-
                 # if settings.AUTO_RANK_UPGRADE:
                 #     rank_data = await self.get_rank_data(http_client)
                 #     unused_stars = rank_data.get('data', {}).get('unusedStars', 0)
@@ -488,6 +491,37 @@ class Tapper:
             full_url = "https://api-web.tomarket.ai/tomarket-game/v1/rank/upgrade"
             response = await http_client.request("POST", full_url, json=param)
             return await response.json()
+        except InvalidSession:
+            logger.error(f"{self.session_name} | 获取升级信息")
+
+    async def digTomatoes(self, http_client, init_data):
+        try:
+            param = {
+                "language_code": "zh-hans",
+                "init_data": init_data
+            }
+            full_url = "https://api-web.tomarket.ai/tomarket-game/v1/tasks/list"
+            response = await http_client.request("POST", full_url, json=param)
+            res_json = await response.json()
+            tomatoList = res_json.get('data')['free_tomato']
+            if tomatoList[0]['status'] == 0:
+                start1 = {
+                    "task_id": tomatoList[0]['taskId'],
+                    "init_data": init_data
+                }
+                full_url_start1 = "https://api-web.tomarket.ai/tomarket-game/v1/tasks/start"
+                response_start1 = await http_client.request("POST", full_url_start1, json=start1)
+                res_json_start1 = await response_start1.json()
+                if res_json_start1.get('data')['status'] == 2:
+                    logger.info('开始挖番!')
+                    param1 = {
+                        "task_id": tomatoList[0]['taskId']
+                    }
+                    full_url1 = "https://api-web.tomarket.ai/tomarket-game/v1/tasks/claim"
+                    response1 = await http_client.request("POST", full_url1, json=param1)
+                    res_json1 = await response1.json()
+                    if res_json1.get('data') == 'ok':
+                        logger.info('挖番茄成功!')
         except InvalidSession:
             logger.error(f"{self.session_name} | 获取升级信息")
 
