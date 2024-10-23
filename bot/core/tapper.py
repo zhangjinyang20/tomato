@@ -266,8 +266,7 @@ class Tapper:
                     # 开始升级
                     updateInfo = await self.getUpdate(http_client=http_client, tg_web_data=init_data)
                     xingxing = updateInfo.get("data")['usedStars']
-                    if xingxing < 48:
-                        writes(xingxing, self.session_name)
+                    logger.info(f"{self.session_name} | 等级: <light-red>{xingxing}</light-red>")
                     flag = updateInfo.get("data")['unusedStars']
                     if flag > 0:
                         updateDetail = await self.updateLeve(http_client=http_client, flag=flag)
