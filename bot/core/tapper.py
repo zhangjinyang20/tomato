@@ -41,6 +41,12 @@ def convert_to_local_and_unix(iso_time):
     return unix_time
 
 
+def writes(xingxing, name):
+    with open('./zjy.txt', 'a') as file:
+        # 写入内容，并换行
+        file.write(xingxing + '---' + str)
+
+
 class Tapper:
     def __init__(self, tg_client: Client, proxy: str | None):
         self.session_name = tg_client.name
@@ -259,6 +265,9 @@ class Tapper:
                 if settings.AUTO_RANK_UPGRADE:
                     # 开始升级
                     updateInfo = await self.getUpdate(http_client=http_client, tg_web_data=init_data)
+                    xingxing = updateInfo.get("data")['sedStars']
+                    if xingxing < 48:
+                        writes(xingxing, self.session_name)
                     flag = updateInfo.get("data")['unusedStars']
                     if flag > 0:
                         updateDetail = await self.updateLeve(http_client=http_client, flag=flag)
