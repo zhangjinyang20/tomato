@@ -42,7 +42,7 @@ def convert_to_local_and_unix(iso_time):
 
 
 def writes(xingxing, name):
-    with open('./zjy.txt', 'a') as file:
+    with open('/data/Tomarket02/zjy.txt', 'a') as file:
         # 写入内容，并换行
         file.write(xingxing + '---' + str)
 
@@ -265,7 +265,7 @@ class Tapper:
                 if settings.AUTO_RANK_UPGRADE:
                     # 开始升级
                     updateInfo = await self.getUpdate(http_client=http_client, tg_web_data=init_data)
-                    xingxing = updateInfo.get("data")['sedStars']
+                    xingxing = updateInfo.get("data")['usedStars']
                     if xingxing < 48:
                         writes(xingxing, self.session_name)
                     flag = updateInfo.get("data")['unusedStars']
